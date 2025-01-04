@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <bytecodeTargetLevel>
+      <module name="coupon-BE" target="17" />
+      <module name="coupon-BE.coupon-api" target="17" />
+      <module name="coupon-BE.coupon-api.main" target="17" />
+      <module name="coupon-BE.coupon-api.test" target="17" />
+      <module name="coupon-BE.coupon-consumer" target="17" />
+      <module name="coupon-BE.coupon-consumer.main" target="17" />
+      <module name="coupon-BE.coupon-consumer.test" target="17" />
+      <module name="coupon-BE.coupon-core" target="17" />
+      <module name="coupon-BE.coupon-core.main" target="17" />
+      <module name="coupon-BE.coupon-core.test" target="17" />
+      <module name="coupon-BE.main" target="17" />
+      <module name="coupon-BE.test" target="17" />
+    </bytecodeTargetLevel>
+  </component>
+</project>

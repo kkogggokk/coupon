@@ -1,0 +1,163 @@
+---
+services:
+  coupon-mysql:
+    image: ubuntu/mysql:edge
+    container_name: coupon-mysql
+    networks:
+      - coupon-network
+    ports:
+      - 3306:3306
+    environment:
+      - MYSQL_DATABASE=coupon
+      - MYSQL_ROOT_PASSWORD=1234
+      - MYSQL_USER=abcd
+      - MYSQL_PASSWORD=1234
+      - TZ=Asia/Seoul
+    volumes:
+      - ./coupon-DB/init-scripts:/docker-entrypoint-initdb.d           # 디렉토리의 모든 스크립트 매핑
+      - ./coupon-DB/backup/05-user30000.sql:/tmp/05-user30000.sql
+    command: [ "mysqld", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci", "--explicit_defaults_for_timestamp=1" ]
+    healthcheck:
+      test: [ "CMD-SHELL", "mysqladmin ping -h localhost --silent" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  coupon-redis:
+    image: redis:7.2-alpine
+    container_name: coupon-redis
+    networks:
+      - coupon-network
+    ports:
+      - 6379:6379
+    command: redis-server --port 6379
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 120s  # MySQL 초기화를 고려하여 2분 대기 설정
+
+  coupon-api:
+    image: coupon-api:latest
+    build:
+      context: ./coupon-BE
+      dockerfile: ./Dockerfile-couponAPI
+    container_name: coupon-api
+    networks:
+      - coupon-network
+    ports:
+      - "8081:8081"
+    depends_on:
+      coupon-mysql:
+        condition: service_healthy
+      coupon-redis:
+        condition: service_healthy
+    restart: always
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:mysql://coupon-mysql:3306/coupon
+      - SPRING_DATASOURCE_USERNAME=abcd
+      - SPRING_DATASOURCE_PASSWORD=1234
+      - SPRING_DATA_REDIS_HOST=coupon-redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - TZ=Asia/Seoul
+    cap_add:
+      - NET_ADMIN  # NET_ADMIN 권한 추가
+
+  coupon-consumer:
+    image: coupon-consumer:latest
+    build:
+      context: ./coupon-BE
+      dockerfile: ./Dockerfile-couponConsumer
+    container_name: coupon-consumer
+    networks:
+      - coupon-network
+    ports:
+      - "8082:8082"
+    depends_on:
+      coupon-mysql:
+        condition: service_healthy
+      coupon-redis:
+        condition: service_healthy
+    restart: always
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:mysql://coupon-mysql:3306/coupon
+      - SPRING_DATASOURCE_USERNAME=abcd
+      - SPRING_DATASOURCE_PASSWORD=1234
+      - SPRING_DATA_REDIS_HOST=coupon-redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - TZ=Asia/Seoul
+
+  kakao-be:
+    image: kakao-be:latest
+    build:
+      context: ./kakaoshop-BE
+      dockerfile: ./Dockerfile
+    container_name: kakao-be
+    networks:
+      - coupon-network
+    ports:
+      - "8080:8080"
+    depends_on:
+      coupon-mysql:
+        condition: service_healthy
+      coupon-redis:
+        condition: service_healthy
+    restart: always
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - SPRING_DATASOURCE_URL=jdbc:mysql://coupon-mysql:3306/coupon
+      - SPRING_DATASOURCE_USERNAME=abcd
+      - SPRING_DATASOURCE_PASSWORD=1234
+      - TZ=Asia/Seoul
+
+  kakao-fe:
+    image: kakao-fe:latest
+    build:
+      context: ./kakaoshop-FE
+      dockerfile: ./Dockerfile
+    container_name: kakao-fe
+    networks:
+      - coupon-network
+    ports:
+      - "80:80"
+    environment:
+      - REACT_APP_SHOP_API_URL=http://localhost:8080
+      - REACT_APP_COUPON_API_URL=http://localhost:8081
+      - TZ=Asia/Seoul
+
+# MySQL 모니터링
+  mysqld-exporter:
+    image: prom/mysqld-exporter:latest
+    container_name: mysqld-exporter
+    networks:
+      - coupon-network
+    ports:
+      - 9104:9104
+    environment:
+      - DATA_SOURCE_NAME=abcd:1234@tcp(coupon-mysql:3306)/   # MySQL 컨테이너 이름 사용
+      - TZ=Asia/Seoul
+    depends_on:
+      - coupon-mysql
+
+  # Redis 모니터링
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: redis-exporter
+    networks:
+      - coupon-network
+    ports:
+      - 9121:9121
+    environment:
+      - REDIS_ADDR=redis://coupon-redis:6379
+      - TZ=Asia/Seoul
+    depends_on:
+      - coupon-redis
+
+networks:
+  coupon-network:
+    name: coupon-network
+    external: true  # 기존 네트워크 사용, 별도 host.docker.internal 접근 제거
