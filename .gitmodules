@@ -1,0 +1,18 @@
+[submodule "_load-test"]
+	path = _load-test
+	url = https://github.com/kkogggokk/locust-loadTest.git
+[submodule "_monitoring"]
+	path = _monitoring
+	url = https://github.com/kkogggokk/monitoring.git
+[submodule "coupon-BE"]
+	path = coupon-BE
+	url = https://github.com/kkogggokk/coupon-BE.git
+[submodule "kakaoshop-FE"]
+	path = kakaoshop-FE
+	url = https://github.com/kkogggokk/kakaoshop-FE.git
+[submodule "kakaoshop-BE"]
+	path = kakaoshop-BE
+	url = https://github.com/kkogggokk/kakaoshop-BE.git
+[submodule "coupon-DB"]
+	path = coupon-DB
+	url = https://github.com/kkogggokk/coupon-DB.git
